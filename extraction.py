@@ -2,28 +2,57 @@ import os
 import json
 import csv
 
-# Root path to search through
+# Root directory to scan
 root_path = r"C:\Users\w23063958\OneDrive - Northumbria University - Production Azure AD\MSC PROJECT\1000study\data"
 
-# Output paths
+# Output file paths
 report_csv = os.path.join(root_path, "violation_integrity_report.csv")
 summary_json = os.path.join(root_path, "violation_summary.json")
 filtered_output = os.path.join(root_path, "filtered_violations_131_412.json")
 url_csv_output = os.path.join(root_path, "violations_urls.csv")
 
-# Storage
-target_criteria = {
-    "1.3.1": [],
-    "4.1.2": []
-}
+# Results containers
+target_criteria = {"1.3.1": [], "4.1.2": []}
 integrity_report = []
 parsed_count = 0
 skipped_count = 0
 
-# --- Scan and parse ---
+# ✅ Explicit WCAG mapping for rule accuracy
+WCAG_RULES = {
+    "1.3.1": {
+        "tags": ["wcag131", "wcag2a", "wcag20:1.3.1"],
+        "rule_ids": [
+            "aria-required-children", "aria-required-parent", "definition-list",
+            "dlitem", "landmark-banner-is-top-level", "landmark-main-is-top-level",
+            "landmark-contentinfo-is-top-level"
+        ]
+    },
+    "4.1.2": {
+        "tags": ["wcag412", "wcag2a", "wcag20:4.1.2"],
+        "rule_ids": [
+            "aria-command-name", "aria-input-field-name", "aria-toggle-field-name",
+            "aria-tooltip-name", "aria-roledescription", "select-name",
+            "aria-treeitem-name"
+        ]
+    }
+}
+
+# Accurate matching function
+def is_match(taglist, rule_id, target):
+    tag_string = " ".join(taglist).lower()
+    rule_id = rule_id.lower()
+    rule_ids = WCAG_RULES[target]["rule_ids"]
+    tags = WCAG_RULES[target]["tags"]
+
+    matched_by_tag = any(t in tag_string for t in tags)
+    matched_by_rule_id = rule_id in rule_ids
+
+    return matched_by_tag or matched_by_rule_id, "tag" if matched_by_tag else "rule_id" if matched_by_rule_id else "none"
+
+# 📂 Scan files
 for subdir, _, files in os.walk(root_path):
     for filename in files:
-        if filename.endswith((".json", ".jsonld")):
+        if filename.endswith((".json", ".jsonld", ".jsonId")):
             file_path = os.path.join(subdir, filename)
 
             try:
@@ -38,13 +67,15 @@ for subdir, _, files in os.walk(root_path):
                             "path": file_path,
                             "error": f"JSONDecodeError: {str(e)}"
                         })
-                        continue  # Skip to next file
+                        continue
 
                 parsed_count += 1
+                if parsed_count % 100 == 0:
+                    print(f"Parsed {parsed_count} files...")
 
-                # Sections to check
+                accessibility_data = data.get("accessibility", {})
                 for section in ["violations", "incomplete", "inapplicable"]:
-                    for violation in data.get(section, []):
+                    for violation in accessibility_data.get(section, []):
                         tags = [t.lower() for t in violation.get("tags", [])]
                         rule_id = violation.get("id", "").lower()
                         nodes = violation.get("nodes", [])
@@ -52,36 +83,22 @@ for subdir, _, files in os.walk(root_path):
                         target = nodes[0].get("target", "") if nodes else ""
                         impact = violation.get("impact", "")
 
-                        entry = {
-                            "file": filename,
-                            "file_path": file_path,
-                            "rule_id": rule_id,
-                            "impact": impact,
-                            "html": html,
-                            "target": target
-                        }
-
-                        # Match for SC 1.3.1
-                        if (
-                            "wcag131" in tags or
-                            "wcag1.3.1" in tags or
-                            "wcag20:1.3.1" in tags or
-                            "1.3.1" in tags or
-                            ("aria-" in rule_id and "131" in rule_id)
-                        ):
-                            print("✅ Found 1.3.1 match in:", filename, "| Rule:", rule_id)
-                            target_criteria["1.3.1"].append(entry)
-
-                        # Match for SC 4.1.2
-                        if (
-                            "wcag412" in tags or
-                            "wcag4.1.2" in tags or
-                            "wcag20:4.1.2" in tags or
-                            "4.1.2" in tags or
-                            ("aria-" in rule_id and "412" in rule_id)
-                        ):
-                            print("✅ Found 4.1.2 match in:", filename, "| Rule:", rule_id)
-                            target_criteria["4.1.2"].append(entry)
+                        # ✅ Include all relevant fields
+                        for sc in target_criteria:
+                            matched, source = is_match(tags, rule_id, sc)
+                            if matched:
+                                entry = {
+                                    "file": filename,
+                                    "file_path": file_path,
+                                    "rule_id": rule_id,
+                                    "impact": impact,
+                                    "html": html,
+                                    "target": target,
+                                    "tags": tags,
+                                    "nodes": nodes,
+                                    "matched_by": source
+                                }
+                                target_criteria[sc].append(entry)
 
                 integrity_report.append({
                     "file": filename,
@@ -98,7 +115,7 @@ for subdir, _, files in os.walk(root_path):
                     "error": str(e)
                 })
 
-# --- Write CSV Report ---
+# 💾 Save integrity report
 with open(report_csv, "w", newline='', encoding="utf-8") as csvfile:
     fieldnames = ["file", "status", "path", "error"]
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -106,7 +123,7 @@ with open(report_csv, "w", newline='', encoding="utf-8") as csvfile:
     for row in integrity_report:
         writer.writerow(row)
 
-# --- Write Violation Summary ---
+# 💾 Save summary JSON
 summary_counts = {
     "parsed_files": parsed_count,
     "skipped_files": skipped_count,
@@ -116,13 +133,16 @@ summary_counts = {
 with open(summary_json, "w", encoding="utf-8") as f:
     json.dump(summary_counts, f, indent=2)
 
-# --- Write Filtered Violations ---
+# 💾 Save full filtered JSON
 with open(filtered_output, "w", encoding="utf-8") as f:
     json.dump(target_criteria, f, indent=2)
 
-# --- Write CSV of Violations ---
+# 💾 Save to CSV (with tags and nodes)
 with open(url_csv_output, "w", newline='', encoding="utf-8") as csvfile:
-    fieldnames = ["file", "rule_id", "impact", "WCAG_SC", "html", "target"]
+    fieldnames = [
+        "file", "rule_id", "impact", "WCAG_SC", "html", "target",
+        "tags", "nodes", "matched_by"
+    ]
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()
 
@@ -134,11 +154,14 @@ with open(url_csv_output, "w", newline='', encoding="utf-8") as csvfile:
                 "impact": v["impact"],
                 "WCAG_SC": sc,
                 "html": v["html"],
-                "target": v["target"]
+                "target": v["target"],
+                "tags": json.dumps(v["tags"]),
+                "nodes": json.dumps(v["nodes"]),
+                "matched_by": v.get("matched_by", "N/A")
             })
 
-# --- Final Message ---
-print("\n✅ DONE!")
+# ✅ Done!
+print("✅ DONE!")
 print(f"Parsed: {parsed_count} | Skipped: {skipped_count}")
 print(f"1.3.1 Violations: {len(target_criteria['1.3.1'])}")
 print(f"4.1.2 Violations: {len(target_criteria['4.1.2'])}")
