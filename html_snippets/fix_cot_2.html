@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fix Test</title>
+</head>
+<body>
+  The accessibility rule violated here is related to the lack of an `alt` attribute on the `<img>` element. According to the Web Content Accessibility Guidelines (WCAG) 2.2, all non-text content that is presented to the user has a text alternative that serves the equivalent purpose, except for the situations listed in WCAG 2.2 Guideline 1.1.1 Non-text Content.
+
+The `alt` attribute is important because it provides a text alternative for the image, which is essential for users who rely on screen readers or who have text-only browsers. The text alternative serves the same purpose and presents the same information as the image. If the image is purely decorative and does not convey any meaningful content, it should be marked in a way that it can be ignored by assistive technology.
+
+Here's a step-by-step explanation of why the current HTML snippet violates WCAG 2.2:
+
+1. The `<img>` element is missing an `alt` attribute, which is necessary to describe the image content or function.
+2. Screen readers and other assistive technologies rely on the `alt` attribute to convey the purpose of the image to users who cannot see it.
+3. Without an `alt` attribute, users who are blind or visually impaired will not understand what the image represents or its function within the context of the page.
+
+To correct this violation, you need to add an `alt` attribute to the `<img>` element. The value of the `alt` attribute should describe the purpose of the image. If the image is purely decorative and does not add information to the content, you can use an empty `alt` attribute (`alt=""`) to indicate that the image should be ignored by assistive technologies.
+
+Here's a corrected version of the HTML that is fully accessible:
+
+```html
+<img class="rewardsIcon" 
+     style="height: 20px !important;
+            width: 20px !important;
+            position: absolute;
+            left: -25px;
+            top: -1px;
+            max-width: 20px;
+            max-height: 20px;" 
+     src="https://www.arabinstruments.com/static/frontend/Codazon/unlimited_sport/en_US/Mirasvit_Rewards/images/icon.png"
+     alt="Rewards icon">
+```
+
+In this corrected version, I've added `alt="Rewards icon"` to provide a text alternative for the image. If the image is decorative, you would use `alt=""` instead. The `alt` text should be chosen based on the context in which the image is used and should convey the same message that the image is intended to convey. If the image is a link or a button, the `alt` text should describe the action that will be taken when the user interacts with it.
+</body>
+</html>

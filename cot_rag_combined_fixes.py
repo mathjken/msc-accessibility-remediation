@@ -2,28 +2,35 @@ import json
 import os
 import csv
 from dotenv import load_dotenv
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
 from tqdm import tqdm
+from langchain_community.chat_models import ChatOpenAI
+from langchain.prompts import PromptTemplate
 
 # ✅ Load environment variables
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Initialize OpenAI LLM
-llm = ChatOpenAI(openai_api_key=api_key, model="gpt-4", temperature=0.3)
+# ✅ Initialize OpenAI LLM (gpt-4-1106-preview is more stable and widely accessible)
+llm = ChatOpenAI(openai_api_key=api_key, model="gpt-4-1106-preview", temperature=0)
+
+# ✅ Paths and filenames
+base_dir = os.path.join("C:/", "Users", "ogujo", "OneDrive - Northumbria University - Production Azure AD", "MSC PROJECT", "1000study", "data")
+input_path = os.path.join(base_dir, "sampled_kmeans_violations.json")
+output_json = "cot_rag_combined_fixes.json"
+output_csv = "cot_rag_combined_fixes.csv"
 
 # ✅ Load sampled violations
-input_path = "C:/Users/w23063958/OneDrive - Northumbria University - Production Azure AD/MSC PROJECT/1000study/data/sampled_kmeans_violations.json"
 with open(input_path, "r", encoding="utf-8") as f:
     samples = json.load(f)
 
-# ✅ WCAG reference for RAG (injected context)
+# ✅ WCAG context string for RAG
 wcag_reference = """
-According to WCAG 2.2 SC 4.1.2 and SC 1.3.1, HTML elements should include appropriate ARIA attributes, labels, and roles that are programmatically determinable. Interactive elements must be properly named and structured to ensure compatibility with assistive technologies.
+According to WCAG 2.2 SC 4.1.2 and SC 1.3.1, HTML elements must expose their name, role, and value to assistive technologies.
+Elements that serve a functional role (e.g., buttons, links, checkboxes) should have accessible names using <aria-label>, <aria-labelledby>, or native HTML labeling.
+Incorrect or missing roles, improper ARIA attributes, and unlabeled interactive components hinder screen reader usability.
 """
 
-# ✅ Prompt Templates
+# ✅ Define prompt templates
 cot_prompt = PromptTemplate(
     input_variables=["html", "rule_id"],
     template="""
@@ -53,42 +60,42 @@ Fix the HTML to comply with WCAG standards. Provide a corrected HTML and briefly
 """
 )
 
-# ✅ Result containers
+# ✅ Collect results
 combined_results = []
-output_json = "cot_rag_combined_fixes.json"
-output_csv = "cot_rag_combined_fixes.csv"
 
-# ✅ Run both CoT and RAG for each sample
-for item in tqdm(samples, desc="🔁 Running CoT and RAG"):
-    html = item["html"]
-    rule_id = item["rule_id"]
+for item in tqdm(samples, desc="🔁 Generating CoT and RAG fixes"):
+    html = item.get("html", "").strip()
+    rule_id = item.get("rule_id", "")
 
-    # CoT response
-    cot_text = cot_prompt.format(html=html, rule_id=rule_id)
-    cot_fix = llm.predict(cot_text)
+    if not html:
+        continue  # Skip empty HTML snippets
 
-    # RAG response
-    rag_text = rag_prompt.format(html=html, rule_id=rule_id, doc=wcag_reference)
-    rag_fix = llm.predict(rag_text)
+    # 🧠 CoT fix
+    cot_input = cot_prompt.format(html=html, rule_id=rule_id)
+    cot_response = llm.invoke(cot_input)
+
+    # 📚 RAG fix
+    rag_input = rag_prompt.format(html=html, rule_id=rule_id, doc=wcag_reference)
+    rag_response = llm.invoke(rag_input)
 
     combined_results.append({
         "original_html": html,
         "rule_id": rule_id,
-        "fix_cot": cot_fix,
-        "fix_rag": rag_fix
+        "fix_cot": cot_response.content,
+        "fix_rag": rag_response.content
     })
 
-# ✅ Save combined results to JSON
+# ✅ Save results to JSON
 with open(output_json, "w", encoding="utf-8") as f:
     json.dump(combined_results, f, indent=2)
 
-# ✅ Save combined results to CSV
+# ✅ Save results to CSV
 with open(output_csv, "w", newline='', encoding="utf-8") as csvfile:
-    fieldnames = ["original_html", "rule_id", "fix_cot", "fix_rag"]
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    writer = csv.DictWriter(csvfile, fieldnames=["original_html", "rule_id", "fix_cot", "fix_rag"])
     writer.writeheader()
     for row in combined_results:
         writer.writerow(row)
 
 print("✅ Combined CoT and RAG fix generation complete!")
-print(f"Saved to: {output_json} and {output_csv}")
+print(f"📝 JSON: {output_json}")
+print(f"📄 CSV : {output_csv}")

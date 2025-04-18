@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fix Test</title>
+</head>
+<body>
+  The accessibility rule violated here is related to WCAG 2.2 Guideline 1.2.2 Captions (Prerecorded): "Captions are provided for all prerecorded audio content in synchronized media, except when the media is a media alternative for text and is clearly labeled as such." This means that any prerecorded video content that is intended to be watched by users should have captions that can be turned on or off to aid those who are deaf or hard of hearing, as well as those who prefer to read along for any number of reasons.
+
+The given HTML snippet does not include any reference to captions or subtitles, which means that users who cannot hear the audio are not provided with an alternative way to understand the content that is being presented in the video.
+
+Here's a step-by-step explanation of why this violates WCAG 2.2:
+
+1. The `<video>` element is used to embed a video on a webpage.
+2. The `autoplay`, `muted`, and `loop` attributes indicate that the video will start playing automatically, without sound, and will loop indefinitely.
+3. There is no `<track>` element within the `<video>` element. The `<track>` element is used to specify text tracks for video elements, such as captions or subtitles.
+4. Without captions or subtitles, users who are deaf or hard of hearing will not have access to the audio information in the video.
+
+To correct this violation and make the video accessible, you would need to include a `<track>` element that references a caption file. Here's an example of how you might correct the HTML:
+
+```html
+<video class="bgvid" id="video-player" autoplay muted loop style="width: 1263px; height: 710.438px;">
+  <source src="path-to-your-video.mp4" type="video/mp4">
+  <track src="path-to-your-captions.vtt" kind="captions" srclang="en" label="English">
+</video>
+```
+
+In this corrected version:
+
+- The `id` attribute should have a meaningful value (not "undefined").
+- The `src` attribute in the `<source>` element should point to the actual video file (not "undefined").
+- A `<track>` element has been added, which points to a WebVTT file (`.vtt`) that contains the captions for the video.
+- The `kind` attribute specifies that the track is a caption.
+- The `srclang` attribute specifies the language of the track (in this case, English).
+- The `label` attribute provides a human-readable title for the track.
+
+This corrected version provides captions for the video, making it accessible to users who need or prefer to read the audio content. It's also important to ensure that the video player used on the website supports the display of captions and that users can easily turn the captions on or off.
+</body>
+</html>

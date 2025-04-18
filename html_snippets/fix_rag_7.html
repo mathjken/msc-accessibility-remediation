@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fix Test</title>
+</head>
+<body>
+  The HTML snippet provided has an issue with the `aria-labelledby` attribute. The value of `aria-labelledby` should be the ID of the element that labels the current element. However, the value "theme-toggle-tooltip" does not correspond to any existing ID within the provided snippet. To fix this, we need to ensure that there is an element with the ID "theme-toggle-tooltip" that contains the label for the control, or we need to use a different method to label the control.
+
+Here's a corrected version of the HTML snippet:
+
+```html
+<label for="theme-toggle" class="relative bg-[hsla(var(--color-p-hsl),0.25)] p-[var(--theme-toggle-container-padding)] rounded-2xl w-[var(--theme-toggle-container-width)] min-w-[var(--theme-toggle-container-width)] cursor-pointer z-0 transition-shadow md:bg-[hsla(var(--white-hsl),0.25)] [@media(hover:hover)]:hover:shadow-lg group">
+  <span id="theme-toggle-label">Toggle Theme</span>
+  <input type="checkbox" id="theme-toggle" aria-labelledby="theme-toggle-label" />
+</label>
+```
+
+Changes made:
+
+1. Added an `input` element of type `checkbox` with the ID "theme-toggle" to associate with the `label` element. This is assuming that the label is for a theme toggle checkbox based on the name.
+2. Added a `span` element with the ID "theme-toggle-label" that contains the accessible name "Toggle Theme". This text will be read by screen readers to describe the function of the checkbox.
+3. Updated the `aria-labelledby` attribute to reference the correct ID "theme-toggle-label".
+
+Now, the `label` correctly labels the `input` element, and the `aria-labelledby` attribute references an existing ID that provides an accessible name for the checkbox. This ensures that assistive technologies can properly convey the name, role, and value of the control to users.
+</body>
+</html>
