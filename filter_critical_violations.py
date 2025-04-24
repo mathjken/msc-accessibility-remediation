@@ -3,8 +3,9 @@ import json
 import csv
 
 # Root directory to scan
-root_path = r"C:\Users\w23063958\OneDrive - Northumbria University - Production Azure AD\MSC PROJECT\1000study\data"
-
+#root_path = r"C:\Users\w23063958\OneDrive - Northumbria University - Production Azure AD\MSC PROJECT\1000study\data"
+root_path = r"C:\Users\ogujo\OneDrive - Northumbria University - Production Azure AD\MSC PROJECT\1000study\data"
+ 
 # Output file paths
 report_csv = os.path.join(root_path, "violation_integrity_critical_report.csv")
 summary_json = os.path.join(root_path, "violation_summary_critical.json")
